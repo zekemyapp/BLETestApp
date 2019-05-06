@@ -1,6 +1,7 @@
 package com.example.bletestapp
 
 import android.content.Context
+import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.view.LayoutInflater
@@ -15,13 +16,18 @@ class DeviceArrayAdapter(
     private val deviceList = ArrayList<DeviceItem>()
 
     override fun add(device: DeviceItem) {
+        deviceList.forEach{
+            if (it.address == device.address) {
+                deviceList[deviceList.indexOf(it)] = device
+                return
+            }
+        }
         deviceList.add(device)
     }
 
     override fun getCount(): Int {
         return deviceList.size
     }
-
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View? {
         var listItem: View? = convertView
