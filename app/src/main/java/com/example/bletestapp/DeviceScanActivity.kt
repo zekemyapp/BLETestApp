@@ -1,6 +1,5 @@
 package com.example.bletestapp
 
-import android.app.ListActivity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
@@ -11,16 +10,13 @@ import android.widget.*
 
 private const val SCAN_PERIOD: Long = 10000
 
-/**
- * Activity for scanning and displaying available BLE devices.
- */
-class DeviceScanActivity(
-    //private val bluetoothAdapter: BluetoothAdapter//,
-    //private val handler: Handler
-) : AppCompatActivity() {
+class DeviceScanActivity:AppCompatActivity() {
 
     private var mScanning: Boolean = false
-    var adapter: ArrayAdapter<String>? = null
+    private val adapter: DeviceArrayAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+        //ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
+        DeviceArrayAdapter(this)
+    }
 
     private val bluetoothAdapter: BluetoothAdapter by lazy(LazyThreadSafetyMode.NONE) {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -32,10 +28,10 @@ class DeviceScanActivity(
         setContentView(R.layout.activity_device_scan)
 
         val listView = findViewById<ListView>(R.id.list)
-        adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
+        //adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
 
-        adapter?.add("Hello World")
+        adapter?.add(DeviceItem("Hello","World"))
         adapter?.notifyDataSetChanged()
 
         scanLeDevice(true)
@@ -63,7 +59,7 @@ class DeviceScanActivity(
 
     private val leScanCallback = BluetoothAdapter.LeScanCallback { device, rssi, scanRecord ->
         runOnUiThread {
-            adapter?.add(device.address)
+            adapter?.add(DeviceItem(device.address,device.address))
             adapter?.notifyDataSetChanged()
         }
     }

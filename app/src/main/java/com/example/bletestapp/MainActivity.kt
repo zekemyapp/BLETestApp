@@ -1,13 +1,11 @@
 package com.example.bletestapp
 
-import android.app.ListActivity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Handler
 
 private const val REQUEST_ENABLE_BT = 1
 
