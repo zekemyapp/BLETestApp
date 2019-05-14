@@ -1,5 +1,6 @@
 package com.example.bletestapp
 
+import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.util.Log
 import android.widget.ArrayAdapter
@@ -11,11 +12,11 @@ import android.view.View
 
 class DeviceArrayAdapter(
     private val mContext: Context
-) : ArrayAdapter<DeviceItem>(mContext, 0) {
+) : ArrayAdapter<BluetoothDevice>(mContext, 0) {
 
-    private val deviceList = ArrayList<DeviceItem>()
+    private val deviceList = ArrayList<BluetoothDevice>()
 
-    override fun add(device: DeviceItem) {
+    override fun add(device: BluetoothDevice) {
         deviceList.forEach{
             if (it.address == device.address) {
                 deviceList[deviceList.indexOf(it)] = device
@@ -23,6 +24,10 @@ class DeviceArrayAdapter(
             }
         }
         deviceList.add(device)
+    }
+
+    override fun getItem(position: Int): BluetoothDevice? {
+        return deviceList[position];
     }
 
     override fun getCount(): Int {
@@ -37,7 +42,7 @@ class DeviceArrayAdapter(
         val currentDev = deviceList.get(position)
 
         val name = listItem!!.findViewById(R.id.textView_name) as TextView
-        name.text = currentDev.name
+        name.text = currentDev.name?:"null"
 
         val address = listItem!!.findViewById(R.id.textView_address) as TextView
         address.text = currentDev.address
