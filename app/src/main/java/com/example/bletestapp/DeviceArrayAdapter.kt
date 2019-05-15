@@ -26,7 +26,7 @@ class DeviceArrayAdapter(
         deviceList.add(device)
     }
 
-    override fun getItem(position: Int): BluetoothDevice? {
+    override fun getItem(position: Int): BluetoothDevice {
         return deviceList[position];
     }
 

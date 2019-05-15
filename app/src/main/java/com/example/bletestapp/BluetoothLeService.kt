@@ -7,9 +7,17 @@ import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import java.util.*
-import android.content.Context.BLUETOOTH_SERVICE
-import android.support.v4.content.ContextCompat.getSystemService
-import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+
+
+
+
+
+
 
 
 
@@ -17,7 +25,6 @@ private val TAG = BluetoothLeService::class.java.simpleName
 private const val STATE_DISCONNECTED = 0
 private const val STATE_CONNECTING   = 1
 private const val STATE_CONNECTED    = 2
-const val ACTION_TEST = "this.test"
 const val ACTION_GATT_CONNECTED           = "com.example.bluetooth.le.ACTION_GATT_CONNECTED"
 const val ACTION_GATT_DISCONNECTED        = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED"
 const val ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED"
@@ -32,6 +39,10 @@ class BluetoothLeService : Service() {
     private var connectionState = STATE_DISCONNECTED
     private val mBinder = LocalBinder()
 
+    private var mBluetoothGatt: BluetoothGatt? = null
+    private var mBluetoothDevice: BluetoothDevice? = null
+    private var mConnectionState = STATE_DISCONNECTED
+
     override fun onBind(intent: Intent): IBinder? {
         return mBinder
     }
@@ -41,12 +52,6 @@ class BluetoothLeService : Service() {
             return this@BluetoothLeService
         }
     }
-
-    fun test () {
-        broadcastUpdate(ACTION_TEST)
-    }
-
-
 
 
     /**
@@ -73,6 +78,71 @@ class BluetoothLeService : Service() {
         return true
     }
 
+    fun connect(device: BluetoothDevice): Boolean {
+
+        // TODO Previously connected device.  Try to reconnect.
+        if (mBluetoothDevice != null && device == mBluetoothDevice && mBluetoothGatt != null) {
+            Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.")
+            return if (mBluetoothGatt!!.connect()) {
+                mConnectionState = STATE_CONNECTING
+                true
+            } else {
+                false
+            }
+        }
+
+        // We want to directly connect to the device, so we are setting the autoConnect
+        // parameter to false.
+        mBluetoothGatt = device.connectGatt(this, false, gattCallback)
+        Log.d(TAG, "Trying to create a new connection.")
+        mBluetoothDevice = device
+        mConnectionState = STATE_CONNECTING
+        return true
+    }
+
+    fun disconnect() {
+        if (mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized")
+            return
+        }
+        mBluetoothGatt!!.disconnect()
+    }
+
+    fun getSupportedGattServices(): List<BluetoothGattService>? {
+        return if (mBluetoothGatt == null) null
+        else mBluetoothGatt!!.services
+    }
+
+    fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
+        if (mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized")
+            return
+        }
+        mBluetoothGatt!!.readCharacteristic(characteristic)
+    }
+
+    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic) {
+        if (mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized")
+            return
+        }
+
+        var bytes = ByteArray(1){
+            0x09
+        }
+        characteristic.value = bytes
+        mBluetoothGatt!!.writeCharacteristic(characteristic)
+    }
+
+    fun setCharacteristicNotification(characteristic: BluetoothGattCharacteristic, enabled: Boolean) {
+        if (mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized")
+            return
+        }
+
+        mBluetoothGatt?.setCharacteristicNotification(characteristic, enabled)
+    }
+
     // Various callback methods defined by the BLE API.
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -83,7 +153,7 @@ class BluetoothLeService : Service() {
                     connectionState = STATE_CONNECTED
                     broadcastUpdate(intentAction)
                     Log.i(TAG, "Connected to GATT server.")
-                    //Log.i(TAG, "Attempting to start service discovery: " + bluetoothGatt?.discoverServices())
+                    Log.i(TAG, "Attempting to start service discovery: " + mBluetoothGatt?.discoverServices())
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     intentAction = ACTION_GATT_DISCONNECTED
@@ -109,6 +179,18 @@ class BluetoothLeService : Service() {
                     broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic)
                 }
             }
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            when (status) {
+                BluetoothGatt.GATT_SUCCESS -> {
+                    broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic)
+                }
+            }
+        }
+
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic)
         }
     }
 
@@ -140,12 +222,13 @@ class BluetoothLeService : Service() {
             }
             else -> {
                 // For all other profiles, writes the data formatted in HEX.
+                val name: String = characteristic.uuid.toString()
                 val data: ByteArray? = characteristic.value
                 if (data?.isNotEmpty() == true) {
                     val hexString: String = data.joinToString(separator = " ") {
                         String.format("%02X", it)
                     }
-                    intent.putExtra(EXTRA_DATA, "$data\n$hexString")
+                    intent.putExtra(EXTRA_DATA, "$name: $hexString")
                 }
             }
 

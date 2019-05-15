@@ -1,14 +1,12 @@
 package com.example.bletestapp
 
 import android.app.Activity
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
+import android.bluetooth.*
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.support.v4.app.FragmentActivity
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.*
@@ -16,10 +14,6 @@ import android.content.ComponentName
 import android.os.IBinder
 import android.content.ServiceConnection
 import android.content.IntentFilter
-
-
-
-
 
 private const val SCAN_PERIOD: Long = 10000
 private const val REQUEST_ENABLE_BT = 1
@@ -40,6 +34,12 @@ class DeviceScanActivity:AppCompatActivity() {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
+
+    private var mConnected: Boolean = false
+    private var mDevice: BluetoothDevice? = null
+
+    private var mChar3: BluetoothGattCharacteristic? = null
+    private var mChar4: BluetoothGattCharacteristic? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +62,20 @@ class DeviceScanActivity:AppCompatActivity() {
         listView = findViewById<ListView>(R.id.list)
         listView.adapter = deviceListAdapter
         listView.onItemClickListener = AdapterView.OnItemClickListener { adapterView, view, position, id ->
-            Toast.makeText(this, "Click on " + deviceListAdapter?.getItem(position)?.name, Toast.LENGTH_SHORT).show()
+            run {
+                if (!mConnected) {
+                    mDevice = deviceListAdapter?.getItem(position)
+                    bluetoothLeService?.connect(mDevice!!)
+                } else {
+                    if(deviceListAdapter?.getItem(position) == mDevice) bluetoothLeService?.disconnect()
+                    else {
+                        // TODO Maybe this crashes due to race conditions
+                        bluetoothLeService?.disconnect()
+                        mDevice = deviceListAdapter?.getItem(position)
+                        bluetoothLeService?.connect(mDevice!!)
+                    }
+                }
+            }
         }
 
         if (bluetoothAdapter.isEnabled) scanLeDevice(true)
@@ -88,7 +101,6 @@ class DeviceScanActivity:AppCompatActivity() {
         intentFilter.addAction(ACTION_GATT_DISCONNECTED)
         intentFilter.addAction(ACTION_GATT_SERVICES_DISCOVERED)
         intentFilter.addAction(ACTION_DATA_AVAILABLE)
-        intentFilter.addAction(ACTION_TEST)
         return intentFilter
     }
 
@@ -142,23 +154,39 @@ class DeviceScanActivity:AppCompatActivity() {
                     //connected = true
                     //updateConnectionState(R.string.connected)
                     //(context as? Activity)?.invalidateOptionsMenu()
+                    Toast.makeText(applicationContext, "Connected to " + mDevice?.name, Toast.LENGTH_SHORT).show()
+                    mConnected = true
                 }
                 ACTION_GATT_DISCONNECTED -> {
                     //connected = false
                     //updateConnectionState(R.string.disconnected)
                     //(context as? Activity)?.invalidateOptionsMenu()
                     //clearUI()
+                    Toast.makeText(applicationContext, "Disconnected from " + mDevice?.name, Toast.LENGTH_SHORT).show()
+                    mConnected = false
                 }
                 ACTION_GATT_SERVICES_DISCOVERED -> {
                     // Show all the supported services and characteristics on the
                     // user interface.
                     //displayGattServices(bluetoothLeService.getSupportedGattServices())
+                    Toast.makeText(applicationContext, "Services Discovered from " + mDevice?.name, Toast.LENGTH_SHORT).show()
+                    val gattServices: List<BluetoothGattService>? = bluetoothLeService?.getSupportedGattServices()
+                    gattServices?.forEach { gattService ->
+                        Log.i("GATT_TEST", gattService.uuid.toString())
+                        val gattCharacteristics = gattService.characteristics
+                        gattCharacteristics.forEach { gattCharacteristic ->
+                            Log.i("GATT_TEST", "\t Characteristic: " + gattCharacteristic.uuid.toString())
+                            if (gattCharacteristic.uuid.toString() == "0000fff3-0000-1000-8000-00805f9b34fb") mChar3 = gattCharacteristic
+                            if (gattCharacteristic.uuid.toString() == "0000fff4-0000-1000-8000-00805f9b34fb") mChar4 = gattCharacteristic
+                        }
+                    }
+
+                    if(mChar4 != null) bluetoothLeService!!.setCharacteristicNotification(mChar4!!,true)
+                    if(mChar3 != null) bluetoothLeService!!.writeCharacteristic(mChar3!!)
                 }
                 ACTION_DATA_AVAILABLE -> {
                     //displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA))
-                }
-                ACTION_TEST -> {
-                    Log.i("TEST LOG", "VALID TEST")
+                    Log.i("GATT_TEST", "Data Received from: " + intent.getStringExtra(EXTRA_DATA))
                 }
             }
         }
@@ -174,10 +202,6 @@ class DeviceScanActivity:AppCompatActivity() {
             } else {
                 Log.e("TEST LOG", "Initialized Service!!!")
             }
-
-            bluetoothLeService?.test()
-            // Automatically connects to the device upon successful start-up initialization.
-            //bluetoothLeService.connect(mDeviceAddress)
         }
 
         override fun onServiceDisconnected(componentName: ComponentName) {
