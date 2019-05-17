@@ -15,12 +15,6 @@ import android.bluetooth.BluetoothGattDescriptor
 
 
 
-
-
-
-
-
-
 private val TAG = BluetoothLeService::class.java.simpleName
 private const val STATE_DISCONNECTED = 0
 private const val STATE_CONNECTING   = 1

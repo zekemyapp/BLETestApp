@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">BLE Test App</string>
+    <string name="main_text_2_content">This application searches for BLE Devices using the SimplePeripheral demo app from the TI CC26XX Chip</string>
 </resources>

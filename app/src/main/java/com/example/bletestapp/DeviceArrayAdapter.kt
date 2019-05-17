@@ -8,6 +8,8 @@ import android.widget.TextView
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 
 
 class DeviceArrayAdapter(
@@ -15,6 +17,7 @@ class DeviceArrayAdapter(
 ) : ArrayAdapter<BluetoothDevice>(mContext, 0) {
 
     private val deviceList = ArrayList<BluetoothDevice>()
+    private var mConnected = false;
 
     override fun add(device: BluetoothDevice) {
         deviceList.forEach{
@@ -28,6 +31,10 @@ class DeviceArrayAdapter(
 
     override fun getItem(position: Int): BluetoothDevice {
         return deviceList[position];
+    }
+
+    fun setConnected(isConnected: Boolean) {
+        mConnected = isConnected
     }
 
     override fun getCount(): Int {
@@ -46,6 +53,9 @@ class DeviceArrayAdapter(
 
         val address = listItem!!.findViewById(R.id.textView_address) as TextView
         address.text = currentDev.address
+
+        val connect = listItem!!.findViewById(R.id.textView_connection) as TextView
+        connect.visibility = if(mConnected) INVISIBLE else VISIBLE
 
         return listItem
     }
