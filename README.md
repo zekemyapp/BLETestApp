@@ -6,7 +6,7 @@ The source code of this application can be found [here](https://github.com/zekem
 
 ## IMPORTANT
 You are free to use this code if you will. But be aware that it was coded in a rush and it is not only full of bugs
-but it also more than a couple of null exceptions. Notably, avoid clicking on any button if you are not connected
-to a device and/or haven't clicked on a characteristic.
+but it has also more than a couple of null exceptions. Notably, **avoid clicking on any button if you are not connected
+to a device and/or haven't clicked on a characteristic**.
 
 I don't plan to support this app since a proper code made by the Android project already exist [here](https://developer.android.com/guide/topics/connectivity/bluetooth-le)
