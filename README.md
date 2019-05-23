@@ -1,5 +1,5 @@
 # BLE Test App
-## SimpleBLEPeriphheral Test App
+## SimpleBLEPeripheral Test App
 
 This application searches for BLE Devices using the SimplePeripheral demo app from the TI CC26XX Chip
 The source code of this application can be found [here](https://github.com/zekemyapp/Simple_Peripheral_CC26xx_CustomBoard)
