@@ -13,9 +13,8 @@ import android.os.IBinder
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.util.Log
-import android.widget.AdapterView
-import android.widget.ListView
-import android.widget.TextView
+import android.view.View
+import android.widget.*
 
 private const val DEVICE_NAME = "SimpleBLEPeripheral"
 private const val CHAR3_UUID = ""
@@ -42,14 +41,26 @@ class MainActivity : AppCompatActivity() {
         DeviceArrayAdapter(this)
     }
 
+    private lateinit var  serviceListView: ExpandableListView
+    private val serviceListAdapter: ServiceArrayAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+        ServiceArrayAdapter(this)
+    }
+
     private lateinit var  charListView: ListView
     private val charListAdapter: CharArrayAdapter? by lazy(LazyThreadSafetyMode.NONE) {
         CharArrayAdapter(this)
     }
 
+    private lateinit var editorView: View
+    private lateinit var buttonRead: Button
+    private lateinit var buttonWrite: Button
+    private lateinit var buttonSub: Button
+    private lateinit var mEddit: EditText
+
     private var mScanning: Boolean = false
     private var mConnected: Boolean = false
     private var mDevice: BluetoothDevice? = null
+    private var mChar: BluetoothGattCharacteristic? = null
     private var mChar3: BluetoothGattCharacteristic? = null // Writable characteristic
     private var mChar4: BluetoothGattCharacteristic? = null // Sends notifications with the value of Char3
 
@@ -105,8 +116,73 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        charListView = findViewById<ListView>(R.id.char_list)
-        charListView.adapter = charListAdapter
+        serviceListView = findViewById<ExpandableListView>(R.id.char_list)
+        serviceListView.setAdapter(serviceListAdapter)
+
+        charListView = findViewById<ListView>(R.id.char_list2)
+        charListView.setAdapter(charListAdapter)
+
+        charListView.onItemClickListener = AdapterView.OnItemClickListener { adapterView, view, position, id ->
+            run {
+                mChar = charListAdapter!!.getItem(position)
+
+                findViewById<TextView>(R.id.text_characteristic).text = mChar!!.uuid.toString()
+
+                if ((mChar!!.properties and BluetoothGattCharacteristic.PROPERTY_READ) !=0) {
+                    buttonRead.visibility = View.VISIBLE
+                } else {
+                    buttonRead.visibility = View.GONE
+                }
+
+                if ((mChar!!.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) !=0) {
+                    buttonWrite.visibility = View.VISIBLE
+                } else {
+                    buttonWrite.visibility = View.GONE
+                }
+
+                if ((mChar!!.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) !=0) {
+                   buttonSub.visibility = View.VISIBLE
+                } else {
+                   buttonSub.visibility = View.GONE
+                }
+            }
+        }
+
+        editorView = findViewById<View>(R.id.editor)
+        buttonRead = findViewById<Button>(R.id.button_read)
+        buttonRead.setOnClickListener(View.OnClickListener {
+            bluetoothLeService!!.readCharacteristic(mChar!!)
+        })
+
+        buttonWrite = findViewById<Button>(R.id.button_write)
+        buttonWrite.setOnClickListener(View.OnClickListener {
+            val c = if (mEddit.text.isNotEmpty()) mEddit.text[0] else '0'
+            var bytes = byteArrayOf(c.toByte())
+
+            bluetoothLeService!!.writeCharacteristic(mChar!!,bytes)
+        })
+
+        buttonSub = findViewById<Button>(R.id.button_sub)
+        buttonSub.setOnClickListener(View.OnClickListener {
+            bluetoothLeService!!.setCharacteristicNotification(mChar!!,true);
+        })
+
+        mEddit = findViewById<EditText>(R.id.edit_characteristic)
+
+        val toggleall = findViewById<Switch>(R.id.all_chars)
+        if (!toggleall.isChecked) serviceListView.visibility = View.GONE
+
+        toggleall.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (isChecked) {
+                serviceListView.visibility = View.VISIBLE
+                charListView.visibility = View.GONE
+                editorView.visibility = View.GONE
+            } else {
+                serviceListView.visibility = View.GONE
+                charListView.visibility = View.VISIBLE
+                editorView.visibility = View.VISIBLE
+            }
+        }
 
         // If Bluetooth was enabled start scanning
         if (bluetoothAdapter.isEnabled) scanLeDevice(true)
@@ -198,9 +274,6 @@ class MainActivity : AppCompatActivity() {
             val action = intent.action
             when (action){
                 ACTION_GATT_CONNECTED -> {
-                    //connected = true
-                    //updateConnectionState(R.string.connected)
-                    //(context as? Activity)?.invalidateOptionsMenu()
                     mConnected = true
                     state_text?.text = "Connected"
                     state_text?.setTextColor(Color.GREEN)
@@ -208,31 +281,30 @@ class MainActivity : AppCompatActivity() {
                     deviceListAdapter?.notifyDataSetChanged();
                 }
                 ACTION_GATT_DISCONNECTED -> {
-                    //connected = false
-                    //updateConnectionState(R.string.disconnected)
-                    //(context as? Activity)?.invalidateOptionsMenu()
-                    //clearUI()
                     mConnected = false
                     state_text?.text = "Disconnected"
                     state_text?.setTextColor(Color.RED)
                     deviceListAdapter?.setConnected(false);
                     deviceListAdapter?.notifyDataSetChanged();
+                    serviceListAdapter?.clear();
+                    serviceListAdapter?.notifyDataSetChanged()
                     charListAdapter?.clear();
                     charListAdapter?.notifyDataSetChanged()
                 }
                 ACTION_GATT_SERVICES_DISCOVERED -> {
-                    // Show all the supported services and characteristics on the
-                    // user interface.
-                    //displayGattServices(bluetoothLeService.getSupportedGattServices())
-
+                    // Show all the supported services and characteristics on the user interface.
                     val gattServices: List<BluetoothGattService>? = bluetoothLeService?.getSupportedGattServices()
                     gattServices?.forEach { gattService ->
                         Log.i("GATT_TEST", gattService.uuid.toString())
+                        serviceListAdapter?.add(gattService)
+                        serviceListAdapter?.notifyDataSetChanged()
                         val gattCharacteristics = gattService.characteristics
                         gattCharacteristics.forEach { gattCharacteristic ->
                             Log.i("GATT_TEST", "\t Characteristic: " + gattCharacteristic.uuid.toString())
-                            charListAdapter?.add(gattCharacteristic)
-                            charListAdapter?.notifyDataSetChanged()
+                            if (gattService.uuid.toString() == "0000fff0-0000-1000-8000-00805f9b34fb") {
+                                charListAdapter?.add(gattCharacteristic)
+                                charListAdapter?.notifyDataSetChanged()
+                            }
                             //if (gattCharacteristic.uuid.toString() == "0000fff3-0000-1000-8000-00805f9b34fb") mChar3 = gattCharacteristic
                             //if (gattCharacteristic.uuid.toString() == "0000fff4-0000-1000-8000-00805f9b34fb") mChar4 = gattCharacteristic
                         }
@@ -242,8 +314,13 @@ class MainActivity : AppCompatActivity() {
                     //if(mChar3 != null) bluetoothLeService!!.writeCharacteristic(mChar3!!)
                 }
                 ACTION_DATA_AVAILABLE -> {
-                    //displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA))
                     Log.i("GATT_TEST", "Data Received from: " + intent.getStringExtra(EXTRA_DATA))
+                    val data = intent.getStringExtra(EXTRA_DATA).split(':')
+
+                    val isNotif = intent.getBooleanExtra(EXTRA_NOTIF,false)
+
+                    if(isNotif) findViewById<TextView>(R.id.text_notif).text = data[1]
+                    else findViewById<TextView>(R.id.text_read).text = data[1]
                 }
             }
         }

@@ -24,6 +24,7 @@ const val ACTION_GATT_DISCONNECTED        = "com.example.bluetooth.le.ACTION_GAT
 const val ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED"
 const val ACTION_DATA_AVAILABLE           = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE"
 const val EXTRA_DATA                      = "com.example.bluetooth.le.EXTRA_DATA"
+const val EXTRA_NOTIF                     = "isNotif"
 val UUID_HEART_RATE_MEASUREMENT       = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb")
 
 /* A service that interacts with the BLE device via the Android BLE API. */
@@ -115,15 +116,12 @@ class BluetoothLeService : Service() {
         mBluetoothGatt!!.readCharacteristic(characteristic)
     }
 
-    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic) {
+    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic,bytes: ByteArray) {
         if (mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized")
             return
         }
 
-        var bytes = ByteArray(1){
-            0x09
-        }
         characteristic.value = bytes
         mBluetoothGatt!!.writeCharacteristic(characteristic)
     }
@@ -184,12 +182,30 @@ class BluetoothLeService : Service() {
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic)
+            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic,true)
         }
     }
 
     private fun broadcastUpdate(action: String) {
         val intent = Intent(action)
+        sendBroadcast(intent)
+    }
+
+    private fun broadcastUpdate(action: String, characteristic: BluetoothGattCharacteristic, isNotif: Boolean){
+        val intent = Intent(action)
+
+        intent.putExtra(EXTRA_NOTIF, isNotif)
+
+        // For all other profiles, writes the data formatted in HEX.
+        val name: String = characteristic.uuid.toString()
+        val data: ByteArray? = characteristic.value
+        if (data?.isNotEmpty() == true) {
+            val hexString: String = data.joinToString(separator = " ") {
+                String.format("%02X", it)
+            }
+            intent.putExtra(EXTRA_DATA, "$name: $hexString")
+        }
+
         sendBroadcast(intent)
     }
 

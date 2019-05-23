@@ -9,19 +9,21 @@
             android:id="@+id/textView_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
+            android:textSize="20sp"
             android:textStyle="bold"
             android:text="One"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"/>
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_marginStart="40dp"/>
 
     <TextView
             android:id="@+id/textView_uuid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="15sp"
             android:text="Two"
             app:layout_constraintTop_toBottomOf="@id/textView_name"
-            app:layout_constraintLeft_toLeftOf="parent"/>
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_marginStart="40dp"/>
 
 </android.support.constraint.ConstraintLayout>

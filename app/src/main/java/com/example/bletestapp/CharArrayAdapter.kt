@@ -2,12 +2,12 @@ package com.example.bletestapp
 
 import android.bluetooth.BluetoothGattCharacteristic
 import android.content.Context
+
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
-
 
 class CharArrayAdapter(private val mContext: Context) : ArrayAdapter<BluetoothGattCharacteristic>(mContext, 0) {
 
@@ -40,7 +40,7 @@ class CharArrayAdapter(private val mContext: Context) : ArrayAdapter<BluetoothGa
         val name = listItem!!.findViewById(R.id.textView_name) as TextView
         name.text = currentChar.uuid.toString()?:"null"
 
-        val address = listItem!!.findViewById(R.id.textView_uuid) as TextView
+        val address = listItem.findViewById(R.id.textView_uuid) as TextView
         address.text = currentChar.uuid.toString()
 
         return listItem
