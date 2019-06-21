@@ -13,5 +13,4 @@ I don't plan to support this app since a proper code made by the Android project
 
 ## Images
 
-![Screenshot](./res/screenshot_0.png =200x)
-<img src="./res/screenshot_0.png" alt="" data-canonical-src="./res/screenshot_0.png" width="200" />
+<img src="./res/screenshot_0.png" alt="" data-canonical-src="./res/screenshot_0.png" width="400" />
