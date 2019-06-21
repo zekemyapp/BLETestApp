@@ -10,3 +10,7 @@ but it has also more than a couple of null exceptions. Notably, **avoid clicking
 to a device and/or haven't clicked on a characteristic**.
 
 I don't plan to support this app since a proper code made by the Android project already exist [here](https://developer.android.com/guide/topics/connectivity/bluetooth-le)
+
+## Images
+
+![Screenshot](./res/screenshot_0;png)
